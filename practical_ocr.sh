@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Ensure necessary directories exist
+mkdir -p ./output ./ocr_output ./final_merge
+
 # Ensure the ./pdfs directory exists
 if [ ! -d "./pdfs" ]; then
     echo "Error: The './pdfs' directory does not exist."
@@ -31,39 +34,85 @@ selected_pdf="${pdf_files[$((choice-1))]}"
 base_name=$(basename "$selected_pdf" .pdf)
 
 echo "Processing: $selected_pdf"
-mkdir -p output
 
 # Get total page count of the PDF
 total_pages=$(pdfinfo "$selected_pdf" | awk '/Pages:/ {print $2}')
 if [ -z "$total_pages" ]; then
-    echo "Could not determine page count. Proceeding without progress tracking."
-    total_pages=0
+    echo "Could not determine page count."
+    exit 1
 fi
 
 echo "Total pages: $total_pages"
 
-# Convert PDF pages to JPG with progress tracking
+# Check if the final merged PDF exists and is complete
+final_pdf="./final_merge/${base_name}_final.pdf"
+if [ -f "$final_pdf" ]; then
+    existing_pages=$(pdfinfo "$final_pdf" | awk '/Pages:/ {print $2}')
+    if [ "$existing_pages" -eq "$total_pages" ]; then
+        echo "Final PDF already exists and is complete: $final_pdf"
+        exit 0
+    else
+        echo "Final PDF exists but is incomplete. Resuming processing..."
+    fi
+fi
+
+# Convert PDF pages to JPG (skip if already exists)
 for ((i=0; i<total_pages; i++)); do
     page_number=$(printf "%03d" $i)
     output_file="output/${base_name}-${page_number}.jpg"
+
+    if [ -f "$output_file" ]; then
+        echo "Skipping page $((i+1)), image already exists: $output_file"
+        continue
+    fi
+
     convert -density 150 "$selected_pdf[$i]" -quality 80 "$output_file"
     echo "Converted page $((i+1)) of $total_pages to $output_file"
 done
 
-echo "Conversion complete. Images saved in 'output' folder."
+echo "Image extraction complete."
 
-# Create a single PDF from all the images
-output_pdf="./final_merge/${base_name}_final.pdf"
+# Run OCR on each JPG (skip if already processed)
+for ((i=0; i<total_pages; i++)); do
+    page_number=$(printf "%03d" $i)
+    img_file="output/${base_name}-${page_number}.jpg"
+    pdf_file="ocr_output/${base_name}-${page_number}.pdf"
 
-mkdir -p ./final_merge
+    if [ -f "$pdf_file" ]; then
+        echo "Skipping OCR for page $((i+1)), already processed."
+        continue
+    fi
 
-# Check if images exist in the output folder
-if [ "$(ls -A output/*.jpg)" ]; then
-    convert output/*.jpg "$output_pdf"
-    echo "PDF created successfully: $output_pdf"
-else
-    echo "No JPG images found in the output folder. PDF creation failed."
+    if [ ! -f "$img_file" ]; then
+        echo "Error: Expected image file missing: $img_file"
+        exit 1
+    fi
+
+    tesseract "$img_file" "${pdf_file%.pdf}" -l eng pdf
+    echo "OCR processed: $pdf_file"
+done
+
+echo "OCR processing complete."
+
+# Verify all OCR PDFs exist before merging
+missing_pages=0
+for ((i=0; i<total_pages; i++)); do
+    page_number=$(printf "%03d" $i)
+    pdf_file="ocr_output/${base_name}-${page_number}.pdf"
+
+    if [ ! -f "$pdf_file" ]; then
+        echo "Missing OCR PDF: $pdf_file"
+        missing_pages=1
+    fi
+done
+
+if [ "$missing_pages" -eq 1 ]; then
+    echo "Error: Some OCR-processed PDFs are missing. Cannot merge."
     exit 1
 fi
 
-echo "Final PDF is saved as $output_pdf."
+# Merge all individual PDFs into one final PDF
+echo "Merging all individual PDFs into final document..."
+pdftk $(ls ocr_output/${base_name}-*.pdf | sort -V) cat output "$final_pdf"
+
+echo "Final PDF created successfully: $final_pdf"
