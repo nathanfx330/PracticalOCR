@@ -79,7 +79,7 @@ This script is used to merge all individual OCR PDFs into one final, searchable 
 
 ## Example Workflow
 
-1. Place your PDF files in the `pdfs/` folder.
+1. Place your PDF files in the `pdfs/` folder (located in the project root).
 2. Run `pdf_to_jpg.sh` to convert the PDFs into images.
 3. Run `run_ocr.sh` to perform OCR on the images and generate searchable PDFs.
 4. Run `finalize.sh` to merge all individual OCR PDFs into a single file.
