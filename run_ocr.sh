@@ -9,10 +9,11 @@ fi
 # Create OCR output folder
 mkdir -p ocr_output
 
-# Run Tesseract on each image
+# Run Tesseract on each image to generate PDFs
 for img in output/*.jpg; do
     base_name=$(basename "$img" .jpg)
-    tesseract "$img" "ocr_output/$base_name" --dpi 300
+    tesseract "$img" "ocr_output/$base_name" --dpi 300 pdf
+    echo "OCR complete for $img. PDF saved in 'ocr_output/$base_name.pdf'"
 done
 
-echo "OCR complete. Text files saved in 'ocr_output' folder."
+echo "OCR process completed. PDFs saved in 'ocr_output' folder."
