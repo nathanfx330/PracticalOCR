@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Check for required tools
+for tool in convert pdfinfo tesseract pdftk; do
+    if ! command -v "$tool" &>/dev/null; then
+        echo "Error: $tool is not installed. Please install it before running this script."
+        exit 1
+    fi
+done
+
 # Ensure necessary directories exist
 mkdir -p ./output ./ocr_output ./final_merge
 
@@ -67,6 +75,10 @@ for ((i=0; i<total_pages; i++)); do
     fi
 
     convert -density 150 "$selected_pdf[$i]" -quality 80 "$output_file"
+    if [ $? -ne 0 ]; then
+        echo "Error converting page $((i+1))."
+        exit 1
+    fi
     echo "Converted page $((i+1)) of $total_pages to $output_file"
 done
 
@@ -89,12 +101,16 @@ for ((i=0; i<total_pages; i++)); do
     fi
 
     tesseract "$img_file" "${pdf_file%.pdf}" -l eng pdf
+    if [ $? -ne 0 ]; then
+        echo "Error during OCR on page $((i+1))."
+        exit 1
+    fi
     echo "OCR processed: $pdf_file"
 done
 
 echo "OCR processing complete."
 
-# Verify all OCR PDFs exist before merging
+# Verify that all OCR PDFs exist before merging
 missing_pages=0
 for ((i=0; i<total_pages; i++)); do
     page_number=$(printf "%03d" $i)
@@ -111,8 +127,12 @@ if [ "$missing_pages" -eq 1 ]; then
     exit 1
 fi
 
-# Merge all individual PDFs into one final PDF
+# Merge all individual OCR PDFs into one final PDF
 echo "Merging all individual PDFs into final document..."
 pdftk $(ls ocr_output/${base_name}-*.pdf | sort -V) cat output "$final_pdf"
+if [ $? -ne 0 ]; then
+    echo "Error merging PDFs."
+    exit 1
+fi
 
 echo "Final PDF created successfully: $final_pdf"
