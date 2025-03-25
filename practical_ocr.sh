@@ -64,6 +64,19 @@ if [ -f "$final_pdf" ]; then
     fi
 fi
 
+# Prompt for levels adjustment option
+echo "Choose export mode:"
+echo "1. Export without levels adjustment"
+echo "2. Export with levels adjustment"
+read -r export_choice
+
+if [[ "$export_choice" == "2" ]]; then
+    echo "Enter black point percentage (e.g., 10 for 10%):"
+    read -r black_point
+    echo "Enter white point percentage (e.g., 90 for 90%):"
+    read -r white_point
+fi
+
 # Convert PDF pages to JPG (skip if already exists)
 for ((i=0; i<total_pages; i++)); do
     page_number=$(printf "%03d" $i)
@@ -74,12 +87,26 @@ for ((i=0; i<total_pages; i++)); do
         continue
     fi
 
-    convert -density 150 "$selected_pdf[$i]" -quality 80 "$output_file"
+    # First, convert the PDF page to a temporary image
+    convert -density 150 "$selected_pdf[$i]" -quality 80 "temp_${base_name}-${page_number}.jpg"
     if [ $? -ne 0 ]; then
         echo "Error converting page $((i+1))."
         exit 1
     fi
-    echo "Converted page $((i+1)) of $total_pages to $output_file"
+
+    # Apply levels adjustment if option 2 was selected; otherwise, move the temp image
+    if [[ "$export_choice" == "2" ]]; then
+        convert "temp_${base_name}-${page_number}.jpg" -level "${black_point}%,${white_point}%" "$output_file"
+        if [ $? -ne 0 ]; then
+            echo "Error applying levels adjustment on page $((i+1))."
+            rm -f "temp_${base_name}-${page_number}.jpg"
+            exit 1
+        fi
+    else
+        mv "temp_${base_name}-${page_number}.jpg" "$output_file"
+    fi
+
+    echo "Processed page $((i+1)) of $total_pages to $output_file"
 done
 
 echo "Image extraction complete."
