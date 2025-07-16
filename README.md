@@ -1,103 +1,131 @@
-# PracticalOCR
+PracticalOCR (for Linux)
 
-PracticalOCR is a command-line toolset designed to automate the OCR (Optical Character Recognition) process on PDFs by converting each page of the PDF into a searchable PDF, leveraging Tesseract for OCR.
+PracticalOCR is a command-line toolset designed to automate the OCR (Optical Character Recognition) process on PDFs. It leverages a series of Bash scripts and standard Linux utilities to convert each page of a PDF into a searchable document and merge them into a final output file.
 
-## Requirements
+Features
 
-Before using PracticalOCR, ensure you have the following software installed on your system:
+Automates the conversion of standard PDFs into searchable PDFs.
 
-- **ImageMagick**: A tool for image manipulation.
-- **Ghostscript**: A suite for working with PostScript and PDF files.
-- **Enscript**: A utility for converting files to PostScript.
-- **pdftk-java**: A tool for manipulating PDF files.
-- **Tesseract OCR**: The engine used to recognize text from images.
+Uses a modular, three-script workflow (convert, ocr, finalize).
 
-### Install Dependencies
+Built with standard Linux command-line tools for easy installation.
 
-Run the following command to install the required tools on an Ubuntu-based system:
+Designed for Debian/Ubuntu-based systems.
 
-```bash
+Automatically skips already processed files to save time on re-runs.
+
+Requirements
+
+Before using PracticalOCR, ensure you have the following command-line tools installed on your system:
+
+ImageMagick
+
+Ghostscript
+
+Enscript
+
+pdftk-java (A Java port of PDFtk)
+
+Tesseract OCR
+
+Installation for Ubuntu/Debian
+
+You can install all required dependencies with a single command:
+
+Generated bash
 sudo apt update
 sudo apt install imagemagick enscript ghostscript pdftk-java tesseract-ocr
-```
 
-## Setup
+Setup
 
-1. **Create a `pdfs` folder**: This folder is where you will place the PDFs you want to process. Make sure this folder exists in the same directory as the scripts.
+Make Scripts Executable:
+Before running the scripts for the first time, you must make them executable.
 
-   ```bash
-   mkdir pdfs
-   ```
+Generated bash
+chmod +x pdf_to_jpg.sh run_ocr.sh finalize.sh
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-2. **Add PDFs**: Place your PDF files in the `./pdfs` folder. These will be processed to generate images and perform OCR.
+Create Input Folder:
+The scripts require a pdfs folder to read from. Create it in the same directory as the scripts.
 
-3. **Directory Structure**: 
-   - `pdfs/`: Contains the PDFs you wish to process.
-   - `output/`: Will contain the JPG images generated from PDF pages.
-   - `ocr_output/`: Will contain the PDF files generated from OCR of each image.
-   - `final_merge/`: Will contain the final merged PDF output.
+Generated bash
+mkdir pdfs
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-## Scripts
+Add PDFs:
+Place the PDF files you want to process into the ./pdfs folder.
 
-### `pdf_to_jpg.sh`
+Directory Structure
 
-This script is used to convert the pages of a PDF into JPG images. You can run this as a standalone tool if you need to manually convert PDFs to images before running OCR.
+The scripts use the following directories. The output, ocr_output, and final_merge folders will be created automatically if they don't exist.
 
-#### Usage:
+pdfs/: Input location. Place your source PDFs here.
 
-```bash
+output/: Stores intermediate JPG images generated from PDF pages.
+
+ocr_output/: Stores the intermediate, single-page searchable PDFs.
+
+final_merge/: Final output. Contains the final merged, searchable PDF.
+
+Usage
+
+The workflow involves running the three scripts in sequence.
+
+Step 1: Convert PDF to Images
+This script prompts you to select a PDF from the pdfs folder and converts each of its pages into a JPG image in the output/ folder.
+
+Generated bash
 ./pdf_to_jpg.sh
-```
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-- The script will prompt you to select a PDF file from the `./pdfs` folder.
-- It will then convert each page of the selected PDF into a JPG image and store them in the `output/` folder.
+Step 2: Perform OCR on Images
+This script processes each JPG file in the output/ folder, using Tesseract to perform OCR and create a searchable, single-page PDF in the ocr_output/ folder.
 
-### `run_ocr.sh`
-
-This script is used to run OCR on the generated JPG images and convert each page into a searchable PDF using Tesseract. This is part of the automated workflow.
-
-#### Usage:
-
-```bash
+Generated bash
 ./run_ocr.sh
-```
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-- The script will process each JPG file in the `output/` folder.
-- For each image, it will use Tesseract to perform OCR and generate a searchable PDF in the `ocr_output/` folder.
+Step 3: Merge Final PDF
+This final script merges all the individual PDFs from ocr_output/ into a single, multi-page document and saves it in the final_merge/ folder.
 
-### `finalize.sh`
-
-This script is used to merge all individual OCR PDFs into one final, searchable PDF document.
-
-#### Usage:
-
-```bash
+Generated bash
 ./finalize.sh
-```
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
+Troubleshooting
 
-- The script will merge all PDFs from the `ocr_output/` folder into a single PDF and save it in the `final_merge/` folder.
+Ensure that the pdfs directory exists and contains at least one PDF file before starting.
 
-## Example Workflow
+If you get a "command not found" error, double-check that all dependencies listed in the Requirements section were installed correctly.
 
-1. Place your PDF files in the `pdfs/` folder (located in the project root).
-2. Run `pdf_to_jpg.sh` to convert the PDFs into images.
-3. Run `run_ocr.sh` to perform OCR on the images and generate searchable PDFs.
-4. Run `finalize.sh` to merge all individual OCR PDFs into a single file.
-
-## Notes
-
-- The scripts will automatically create the necessary directories (`./output`, `./ocr_output`, and `./final_merge`) if they do not already exist.
-- If the PDFs have already been processed or images have already been generated, the scripts will skip the already processed files to save time.
-
-## Troubleshooting
-
-- Ensure that the `pdfs` directory exists and contains PDF files before running the scripts.
-- If you encounter issues with missing tools, make sure all dependencies are installed correctly.
-- If the OCR process takes too long, it may be because of high-resolution images or large PDF files. You can adjust the resolution settings in the scripts as needed.
-
-## License
+If you get a "Permission denied" error, ensure you have made the scripts executable (see Setup step 1).
 
 License
+
 MIT License
 
 Copyright (c) 2025 nathanfx330
